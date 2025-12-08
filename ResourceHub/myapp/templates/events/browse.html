@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Community Events{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-calendar-event"></i> Community Events</h2>
+    {% if user.is_authenticated %}
+    <a href="{% url 'event_create' %}" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Create Event</a>
+    {% endif %}
+</div>
+
+<div class="row">
+    {% for event in events %}
+    <div class="col-md-6 mb-4">
+        <div class="card h-100 card-hover">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h5 class="card-title">{{ event.title }}</h5>
+                    <span class="badge bg-info">{{ event.get_event_type_display }}</span>
+                </div>
+                <p class="card-text">{{ event.description|truncatewords:30 }}</p>
+                <div class="mb-2">
+                    <p class="mb-1"><i class="bi bi-calendar"></i> {{ event.event_date|date:"M d, Y - g:i A" }}</p>
+                    <p class="mb-1"><i class="bi bi-geo-alt"></i> {{ event.location }}</p>
+                    <p class="mb-1">
+                        <i class="bi bi-people"></i> {{ event.participants.count }} participant{{ event.participants.count|pluralize }}
+                        {% if event.max_participants %}
+                        / {{ event.max_participants }}
+                        {% endif %}
+                    </p>
+                </div>
+                <small class="text-muted">Organized by {{ event.organizer.username }}</small>
+                <div class="mt-3">
+                    <a href="{% url 'event_detail' event.pk %}" class="btn btn-outline-primary">View Details</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="alert alert-info"><i class="bi bi-info-circle"></i> No upcoming events. Create one!</div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

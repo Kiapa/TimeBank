@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">💸 Transfer Time Credits</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info d-flex justify-content-between">
+                    <span>Your Current Balance:</span>
+                    <strong>{{ user.profile.time_credits }} hrs</strong>
+                </div>
+
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Recipient (User)</label>
+                        {{ form.receiver }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Amount (Hours)</label>
+                        {{ form.amount }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        {{ form.description }}
+                        <div class="form-text">Describe the service provided (e.g., "Gardening help").</div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success">Send Credits</button>
+                        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

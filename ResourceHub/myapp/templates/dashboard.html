@@ -1,0 +1,437 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Community Resource Hub{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    .stat-icon {
+        font-size: 3rem;
+        opacity: 0.2;
+        position: absolute;
+        right: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+    .stat-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin: 0;
+    }
+    .stat-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .quick-action-btn {
+        border-radius: 10px;
+        padding: 15px;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+    .quick-action-btn:hover {
+        transform: translateX(5px);
+        border-color: currentColor;
+    }
+    .transaction-item {
+        border-left: 4px solid #dee2e6;
+        padding: 12px;
+        margin-bottom: 10px;
+        border-radius: 5px;
+        background: #f8f9fa;
+        transition: all 0.3s ease;
+    }
+    .transaction-item:hover {
+        background: #e9ecef;
+        border-left-color: #0d6efd;
+    }
+    .transaction-positive {
+        border-left-color: #28a745;
+    }
+    .transaction-negative {
+        border-left-color: #dc3545;
+    }
+    .listing-card {
+        border-radius: 10px;
+        border: 1px solid #dee2e6;
+        transition: all 0.3s ease;
+    }
+    .listing-card:hover {
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        transform: translateY(-3px);
+    }
+    .section-header {
+        border-bottom: 3px solid #0d6efd;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+    }
+    .badge-custom {
+        padding: 8px 12px;
+        border-radius: 20px;
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Welcome Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="mb-1">
+                    <i class="bi bi-emoji-smile"></i> Welcome back, {{ user.get_full_name|default:user.username }}!
+                </h2>
+                <p class="text-muted mb-0">Here's what's happening in your community today</p>
+            </div>
+            <div class="text-end">
+                <small class="text-muted d-block">Last login</small>
+                <strong>{{ user.last_login|date:"M d, Y - g:i A"|default:"First time!" }}</strong>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <div class="card-body text-white position-relative">
+                <i class="bi bi-coin stat-icon"></i>
+                <p class="stat-label text-white-50 mb-1">Time Credits</p>
+                <h3 class="stat-value">{{ balance|floatformat:1 }}</h3>
+                <small class="text-white-50">hours available</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card bg-gradient" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+            <div class="card-body text-white position-relative">
+                <i class="bi bi-star-fill stat-icon"></i>
+                <p class="stat-label text-white-50 mb-1">Your Rating</p>
+                <h3 class="stat-value">{{ avg_rating|floatformat:1 }}</h3>
+                <small class="text-white-50">out of 5.0 stars</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card bg-gradient" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+            <div class="card-body text-white position-relative">
+                <i class="bi bi-list-check stat-icon"></i>
+                <p class="stat-label text-white-50 mb-1">Active Listings</p>
+                <h3 class="stat-value">{{ my_listings.count }}</h3>
+                <small class="text-white-50">service{{ my_listings.count|pluralize }}</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card bg-gradient" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+            <div class="card-body text-white position-relative">
+                <i class="bi bi-tools stat-icon"></i>
+                <p class="stat-label text-white-50 mb-1">Tools Shared</p>
+                <h3 class="stat-value">{{ my_tools.count }}</h3>
+                <small class="text-white-50">item{{ my_tools.count|pluralize }}</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8 mb-4">
+        <!-- Quick Actions -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0 section-header">
+                    <i class="bi bi-lightning-charge-fill text-warning"></i> Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <a href="{% url 'listing_create' %}" class="btn btn-outline-primary quick-action-btn w-100 text-start">
+                            <i class="bi bi-plus-circle fs-4 me-2"></i>
+                            <div class="d-inline-block">
+                                <strong class="d-block">Post New Service</strong>
+                                <small class="text-muted">Offer or request help</small>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="{% url 'tool_create' %}" class="btn btn-outline-success quick-action-btn w-100 text-start">
+                            <i class="bi bi-tools fs-4 me-2"></i>
+                            <div class="d-inline-block">
+                                <strong class="d-block">Add Tool</strong>
+                                <small class="text-muted">Share your equipment</small>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="{% url 'event_create' %}" class="btn btn-outline-info quick-action-btn w-100 text-start">
+                            <i class="bi bi-calendar-event fs-4 me-2"></i>
+                            <div class="d-inline-block">
+                                <strong class="d-block">Create Event</strong>
+                                <small class="text-muted">Organize a gathering</small>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="{% url 'find_matches' %}" class="btn btn-outline-warning quick-action-btn w-100 text-start">
+                            <i class="bi bi-link-45deg fs-4 me-2"></i>
+                            <div class="d-inline-block">
+                                <strong class="d-block">Find Matches</strong>
+                                <small class="text-muted">Discover connections</small>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="{% url 'edit_profile' %}" class="btn btn-outline-secondary quick-action-btn w-100 text-start">
+                            <i class="bi bi-person-gear fs-4 me-2"></i>
+                            <div class="d-inline-block">
+                                <strong class="d-block">Edit Profile</strong>
+                                <small class="text-muted">Update your info</small>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="{% url 'listing_browse' %}" class="btn btn-outline-primary quick-action-btn w-100 text-start">
+                            <i class="bi bi-search fs-4 me-2"></i>
+                            <div class="d-inline-block">
+                                <strong class="d-block">Browse Services</strong>
+                                <small class="text-muted">Find help or offers</small>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+                <hr class="my-3">
+                <a href="{% url 'transfer_credits' %}" class="btn btn-success w-100 py-3">
+                    <i class="bi bi-arrow-left-right fs-5 me-2"></i>
+                    <strong>Transfer Time Credits</strong>
+                </a>
+            </div>
+        </div>
+
+        <!-- My Listings -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 section-header">
+                    <i class="bi bi-list-ul text-primary"></i> My Active Listings
+                </h5>
+                <a href="{% url 'listing_create' %}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-plus"></i> New
+                </a>
+            </div>
+            <div class="card-body">
+                {% for listing in my_listings %}
+                <div class="listing-card p-3 mb-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="mb-0">{{ listing.title }}</h6>
+                        {% if listing.listing_type == 'OFFER' %}
+                        <span class="badge bg-success badge-custom">
+                            <i class="bi bi-hand-thumbs-up"></i> Offering
+                        </span>
+                        {% else %}
+                        <span class="badge bg-warning text-dark badge-custom">
+                            <i class="bi bi-chat-dots"></i> Requesting
+                        </span>
+                        {% endif %}
+                    </div>
+                    <p class="text-muted small mb-2">{{ listing.description|truncatewords:20 }}</p>
+                    
+                    {% if listing.skills.all %}
+                    <div class="mb-2">
+                        {% for skill in listing.skills.all|slice:":5" %}
+                        <span class="badge bg-secondary me-1" style="font-size: 0.75rem;">{{ skill.name }}</span>
+                        {% endfor %}
+                        {% if listing.skills.count > 5 %}
+                        <span class="badge bg-light text-dark" style="font-size: 0.75rem;">+{{ listing.skills.count|add:"-5" }} more</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            <i class="bi bi-clock"></i> Posted {{ listing.created_at|timesince }} ago
+                        </small>
+                        <div>
+                            <a href="{% url 'listing_detail' listing.pk %}" class="btn btn-sm btn-outline-primary me-1">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                            <a href="{% url 'listing_edit' listing.pk %}" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-pencil"></i> Edit
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-4">
+                    <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+                    <p class="text-muted mt-2">No active listings yet</p>
+                    <a href="{% url 'listing_create' %}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Create Your First Listing
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0 section-header">
+                    <i class="bi bi-arrow-left-right text-success"></i> Recent Transactions
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for trans in transactions %}
+                <div class="transaction-item {% if trans.sender == user %}transaction-negative{% else %}transaction-positive{% endif %}">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            {% if trans.sender == user %}
+                            <span class="badge bg-danger badge-custom mb-1">
+                                <i class="bi bi-arrow-up"></i> Sent
+                            </span>
+                            <p class="mb-1">
+                                <strong class="text-danger">-{{ trans.amount }} hrs</strong> to 
+                                <a href="{% url 'view_profile' trans.receiver.username %}">{{ trans.receiver.username }}</a>
+                            </p>
+                            {% else %}
+                            <span class="badge bg-success badge-custom mb-1">
+                                <i class="bi bi-arrow-down"></i> Received
+                            </span>
+                            <p class="mb-1">
+                                <strong class="text-success">+{{ trans.amount }} hrs</strong> from 
+                                <a href="{% url 'view_profile' trans.sender.username %}">{{ trans.sender.username }}</a>
+                            </p>
+                            {% endif %}
+                            <small class="text-muted d-block">
+                                <i class="bi bi-chat-square-quote"></i> {{ trans.description }}
+                            </small>
+                        </div>
+                        <small class="text-muted text-nowrap">
+                            <i class="bi bi-clock"></i> {{ trans.timestamp|timesince }} ago
+                        </small>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-4">
+                    <i class="bi bi-hourglass-split text-muted" style="font-size: 3rem;"></i>
+                    <p class="text-muted mt-2">No transactions yet</p>
+                    <p class="small text-muted">Start helping others to earn time credits!</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Upcoming Events -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0 section-header">
+                    <i class="bi bi-calendar-event text-info"></i> Upcoming Events
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for event in joined_events %}
+                <div class="border rounded p-3 mb-3" style="border-left: 4px solid #0dcaf0 !important;">
+                    <h6 class="mb-2">{{ event.title }}</h6>
+                    <p class="small text-muted mb-2">
+                        <i class="bi bi-calendar3"></i> {{ event.event_date|date:"M d, Y" }}<br>
+                        <i class="bi bi-clock"></i> {{ event.event_date|time:"g:i A" }}<br>
+                        <i class="bi bi-geo-alt"></i> {{ event.location }}
+                    </p>
+                    <a href="{% url 'event_detail' event.pk %}" class="btn btn-sm btn-outline-info w-100">
+                        <i class="bi bi-box-arrow-up-right"></i> View Details
+                    </a>
+                </div>
+                {% empty %}
+                <div class="text-center py-3">
+                    <i class="bi bi-calendar-x text-muted" style="font-size: 2.5rem;"></i>
+                    <p class="text-muted small mt-2 mb-2">No upcoming events</p>
+                    <a href="{% url 'event_browse' %}" class="btn btn-sm btn-info">
+                        <i class="bi bi-search"></i> Browse Events
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- My Tools -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 section-header">
+                    <i class="bi bi-tools text-success"></i> My Tools
+                </h5>
+                <a href="{% url 'tool_create' %}" class="btn btn-sm btn-success">
+                    <i class="bi bi-plus"></i> Add
+                </a>
+            </div>
+            <div class="card-body">
+                {% for tool in my_tools %}
+                <div class="border rounded p-2 mb-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong class="d-block">{{ tool.name }}</strong>
+                            {% if tool.is_available %}
+                            <span class="badge bg-success badge-sm">Available</span>
+                            {% else %}
+                            <span class="badge bg-secondary badge-sm">Unavailable</span>
+                            {% endif %}
+                        </div>
+                        <a href="{% url 'tool_detail' tool.pk %}" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-3">
+                    <i class="bi bi-box text-muted" style="font-size: 2.5rem;"></i>
+                    <p class="text-muted small mt-2 mb-2">No tools shared yet</p>
+                    <a href="{% url 'tool_create' %}" class="btn btn-sm btn-success">
+                        <i class="bi bi-plus-circle"></i> Add a Tool
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Quick Stats Card -->
+        <div class="card shadow-sm" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <div class="card-body text-white text-center">
+                <i class="bi bi-trophy-fill" style="font-size: 3rem; opacity: 0.3;"></i>
+                <h4 class="mt-2 mb-3">Community Impact</h4>
+                <div class="row text-center">
+                    <div class="col-6 border-end border-white">
+                        <h3 class="mb-0">{{ transactions.count }}</h3>
+                        <small class="text-white-50">Transaction{{ transactions.count|pluralize }}</small>
+                    </div>
+                    <div class="col-6">
+                        <h3 class="mb-0">{{ joined_events.count }}</h3>
+                        <small class="text-white-50">Event{{ joined_events.count|pluralize }}</small>
+                    </div>
+                </div>
+                <hr class="border-white my-3">
+                <a href="{% url 'view_profile' user.username %}" class="btn btn-light btn-sm w-100">
+                    <i class="bi bi-person-circle"></i> View My Public Profile
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}{{ tool.name }}{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body p-4">
+                <h2 class="mb-3">{{ tool.name }}</h2>
+                {% if tool.image %}
+                <img src="{{ tool.image.url }}" class="img-fluid mb-3 rounded">
+                {% endif %}
+                <p class="lead">{{ tool.description }}</p>
+                <hr>
+                <p>
+                    Status: {% if tool.is_available %}
+                    <span class="badge bg-success">Available</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Not Available</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        
+        {% if borrows %}
+        <div class="card mt-4">
+            <div class="card-body">
+                <h5>Recent Borrow History</h5>
+                <ul class="list-group">
+                    {% for borrow in borrows %}
+                    <li class="list-group-item">
+                        {{ borrow.borrower.username }} - {{ borrow.status }} 
+                        <small class="text-muted">({{ borrow.start_date|date:"M d" }} to {{ borrow.end_date|date:"M d" }})</small>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5>Owner</h5>
+                <p><i class="bi bi-person-circle"></i> {{ tool.owner.get_full_name|default:tool.owner.username }}</p>
+                <p class="text-muted small">{{ tool.owner.profile.location }}</p>
+                <a href="{% url 'view_profile' tool.owner.username %}" class="btn btn-outline-primary w-100 mb-2">View Profile</a>
+                
+                {% if user.is_authenticated and user != tool.owner and tool.is_available %}
+                <a href="{% url 'tool_request_borrow' tool.pk %}" class="btn btn-success w-100">Request to Borrow</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}{{ event.title }}{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h2>{{ event.title }}</h2>
+                    <span class="badge bg-info fs-6">{{ event.get_event_type_display }}</span>
+                </div>
+                <p class="lead">{{ event.description }}</p>
+                <hr>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><i class="bi bi-calendar"></i> <strong>Date:</strong> {{ event.event_date|date:"l, M d, Y" }}</p>
+                        <p><i class="bi bi-clock"></i> <strong>Time:</strong> {{ event.event_date|time:"g:i A" }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><i class="bi bi-geo-alt"></i> <strong>Location:</strong> {{ event.location }}</p>
+                        <p><i class="bi bi-person"></i> <strong>Organizer:</strong> {{ event.organizer.username }}</p>
+                    </div>
+                </div>
+                
+                <h5>Participants ({{ event.participants.count }}{% if event.max_participants %}/{{ event.max_participants }}{% endif %})</h5>
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    {% for participant in event.participants.all %}
+                    <span class="badge bg-secondary">{{ participant.username }}</span>
+                    {% endfor %}
+                </div>
+                
+                {% if user.is_authenticated %}
+                    {% if is_participant %}
+                    <a href="{% url 'event_leave' event.pk %}" class="btn btn-warning">Leave Event</a>
+                    {% else %}
+                        {% if event.max_participants and event.participants.count >= event.max_participants %}
+                        <button class="btn btn-secondary" disabled>Event Full</button>
+                        {% else %}
+                        <a href="{% url 'event_join' event.pk %}" class="btn btn-success">Join Event</a>
+                        {% endif %}
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5>Event Info</h5>
+                <p class="text-muted small">Created {{ event.created_at|timesince }} ago</p>
+                {% if event.spots_remaining %}
+                <p><strong>Spots Remaining:</strong> {{ event.spots_remaining }}</p>
+                {% else %}
+                <p><strong>Capacity:</strong> Unlimited</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

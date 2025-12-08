@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}Approve Borrow Request{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body p-4">
+                <h3 class="mb-4">Borrow Request</h3>
+                <p><strong>Tool:</strong> {{ borrow.tool.name }}</p>
+                <p><strong>Requester:</strong> {{ borrow.borrower.username }}</p>
+                <p><strong>Dates:</strong> {{ borrow.start_date|date:"M d, Y" }} to {{ borrow.end_date|date:"M d, Y" }}</p>
+                <p><strong>Notes:</strong> {{ borrow.notes|default:"No notes provided" }}</p>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <button type="submit" name="action" value="approve" class="btn btn-success">Approve</button>
+                    <button type="submit" name="action" value="reject" class="btn btn-danger">Reject</button>
+                    <a href="{% url 'tool_manage_borrows' %}" class="btn btn-secondary">Back</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

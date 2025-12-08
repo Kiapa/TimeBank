@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% block title %}Edit Profile{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h2 class="mb-4"><i class="bi bi-person-gear"></i> Edit Profile</h2>
+                
+                {% if messages %}
+                <div class="mb-3">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        {{ profile_form.bio.label_tag }}
+                        {{ profile_form.bio }}
+                        <small class="form-text text-muted">Tell others about yourself</small>
+                        {% if profile_form.bio.errors %}
+                            <div class="text-danger">{{ profile_form.bio.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ profile_form.location.label_tag }}
+                        {{ profile_form.location }}
+                        <small class="form-text text-muted">Your city or neighborhood</small>
+                        {% if profile_form.location.errors %}
+                            <div class="text-danger">{{ profile_form.location.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ profile_form.phone.label_tag }}
+                        {{ profile_form.phone }}
+                        <small class="form-text text-muted">Optional contact number</small>
+                        {% if profile_form.phone.errors %}
+                            <div class="text-danger">{{ profile_form.phone.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ profile_form.profile_picture.label_tag }}
+                        {% if user.profile.profile_picture %}
+                        <div class="mb-2">
+                            <img src="{{ user.profile.profile_picture.url }}" class="rounded" width="100" height="100" style="object-fit: cover;">
+                            <p class="small text-muted mt-1">Current profile picture</p>
+                        </div>
+                        {% endif %}
+                        {{ profile_form.profile_picture }}
+                        <small class="form-text text-muted">Upload a profile photo (JPG, PNG)</small>
+                        {% if profile_form.profile_picture.errors %}
+                            <div class="text-danger">{{ profile_form.profile_picture.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        {{ profile_form.is_available }}
+                        {{ profile_form.is_available.label_tag }}
+                        <small class="form-text text-muted d-block">Let others know you're available for exchanges</small>
+                        {% if profile_form.is_available.errors %}
+                            <div class="text-danger">{{ profile_form.is_available.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Save Changes
+                        </button>
+                        <a href="{% url 'view_profile' user.username %}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

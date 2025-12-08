@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block title %}Manage Borrows{% endblock %}
+{% block content %}
+<h2 class="mb-4">Manage Tool Borrows</h2>
+
+<div class="card mb-4">
+    <div class="card-header"><h5>Pending Requests</h5></div>
+    <div class="card-body">
+        {% for borrow in pending_requests %}
+        <div class="d-flex justify-content-between align-items-center mb-3 p-3 border rounded">
+            <div>
+                <strong>{{ borrow.tool.name }}</strong><br>
+                <small>Requested by {{ borrow.borrower.username }}</small><br>
+                <small class="text-muted">{{ borrow.start_date|date:"M d" }} - {{ borrow.end_date|date:"M d" }}</small>
+            </div>
+            <a href="{% url 'tool_approve_borrow' borrow.pk %}" class="btn btn-sm btn-primary">Review</a>
+        </div>
+        {% empty %}
+        <p class="text-muted">No pending requests</p>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><h5>Active Borrows</h5></div>
+    <div class="card-body">
+        {% for borrow in active_borrows %}
+        <div class="mb-3 p-3 border rounded">
+            <strong>{{ borrow.tool.name }}</strong> - {{ borrow.borrower.username }}<br>
+            <span class="badge bg-info">{{ borrow.status }}</span>
+            <small class="text-muted">{{ borrow.start_date|date:"M d" }} - {{ borrow.end_date|date:"M d" }}</small>
+        </div>
+        {% empty %}
+        <p class="text-muted">No active borrows</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

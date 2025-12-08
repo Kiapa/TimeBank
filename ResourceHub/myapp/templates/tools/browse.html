@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}Tools Library{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-tools"></i> Community Tool Library</h2>
+    {% if user.is_authenticated %}
+    <a href="{% url 'tool_create' %}" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Add Tool</a>
+    {% endif %}
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-10">
+                <input type="text" class="form-control" name="q" placeholder="Search tools..." value="{{ search_query }}">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Search</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row">
+    {% for tool in tools %}
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 card-hover">
+            {% if tool.image %}
+            <img src="{{ tool.image.url }}" class="card-img-top" style="height: 200px; object-fit: cover;">
+            {% else %}
+            <div class="card-img-top bg-secondary d-flex align-items-center justify-content-center" style="height: 200px;">
+                <i class="bi bi-tools text-white" style="font-size: 4rem;"></i>
+            </div>
+            {% endif %}
+            <div class="card-body">
+                <h5 class="card-title">{{ tool.name }}</h5>
+                <p class="card-text text-muted">{{ tool.description|truncatewords:20 }}</p>
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted"><i class="bi bi-person"></i> {{ tool.owner.username }}</small>
+                    {% if tool.is_available %}
+                    <span class="badge bg-success">Available</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Unavailable</span>
+                    {% endif %}
+                </div>
+                <a href="{% url 'tool_detail' tool.pk %}" class="btn btn-outline-primary w-100 mt-3">View Details</a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="alert alert-info"><i class="bi bi-info-circle"></i> No tools available yet.</div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

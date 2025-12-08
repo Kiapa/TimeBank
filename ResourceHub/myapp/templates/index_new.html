@@ -1,0 +1,153 @@
+{% extends 'base_new.html' %}
+
+{% block content %}
+<div class="hero-section rounded">
+    <div class="text-center">
+        <h1 class="display-3 fw-bold">Exchange Time, Build Community</h1>
+        <p class="lead fs-4">Give an hour, get an hour. Share skills, tools, and build stronger neighborhoods.</p>
+        {% if not user.is_authenticated %}
+        <div class="mt-4">
+            <a href="{% url 'register' %}" class="btn btn-light btn-lg me-3">Get Started</a>
+            <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg">Login</a>
+        </div>
+        {% else %}
+        <div class="mt-4">
+            <a href="{% url 'dashboard' %}" class="btn btn-light btn-lg">Go to Dashboard</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- How It Works -->
+<div class="row text-center mb-5">
+    <div class="col-md-4">
+        <div class="p-4">
+            <i class="bi bi-person-plus-fill text-primary" style="font-size: 3rem;"></i>
+            <h4 class="mt-3">1. Join the Community</h4>
+            <p class="text-muted">Create your profile and start with 10 time credits</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="p-4">
+            <i class="bi bi-arrow-left-right text-success" style="font-size: 3rem;"></i>
+            <h4 class="mt-3">2. Share & Exchange</h4>
+            <p class="text-muted">Offer your skills or request help from neighbors</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="p-4">
+            <i class="bi bi-graph-up-arrow text-warning" style="font-size: 3rem;"></i>
+            <h4 class="mt-3">3. Grow Together</h4>
+            <p class="text-muted">Build reputation and strengthen your community</p>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-5">
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h4><i class="bi bi-hand-thumbs-up"></i> Helping Hands</h4>
+            </div>
+            <div class="card-body">
+                {% for offer in offers %}
+                <div class="mb-3 pb-3 border-bottom">
+                    <h6 class="mb-1">{{ offer.title }}</h6>
+                    <p class="small text-muted mb-1">{{ offer.description|truncatewords:15 }}</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted"><i class="bi bi-person"></i> {{ offer.user.username }}</small>
+                        <a href="{% url 'listing_detail' offer.pk %}" class="btn btn-sm btn-outline-success">View</a>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-muted">No offers yet</p>
+                {% endfor %}
+                <a href="{% url 'listing_browse' %}?type=OFFER" class="btn btn-success w-100 mt-2">View All Offers</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-warning">
+                <h4><i class="bi bi-chat-dots"></i> Neighbors in Need</h4>
+            </div>
+            <div class="card-body">
+                {% for req in requests %}
+                <div class="mb-3 pb-3 border-bottom">
+                    <h6 class="mb-1">{{ req.title }}</h6>
+                    <p class="small text-muted mb-1">{{ req.description|truncatewords:15 }}</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted"><i class="bi bi-person"></i> {{ req.user.username }}</small>
+                        <a href="{% url 'listing_detail' req.pk %}" class="btn btn-sm btn-outline-warning">View</a>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-muted">No requests yet</p>
+                {% endfor %}
+                <a href="{% url 'listing_browse' %}?type=REQUEST" class="btn btn-warning w-100 mt-2">View All Requests</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-info text-white">
+                <h4><i class="bi bi-tools"></i> Tool Library</h4>
+            </div>
+            <div class="card-body">
+                {% for tool in tools %}
+                <div class="mb-3 pb-3 border-bottom">
+                    <h6 class="mb-1">{{ tool.name }}</h6>
+                    <p class="small text-muted mb-1">{{ tool.description|truncatewords:10 }}</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted"><i class="bi bi-person"></i> {{ tool.owner.username }}</small>
+                        <a href="{% url 'tool_detail' tool.pk %}" class="btn btn-sm btn-outline-info">View</a>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-muted">No tools available yet</p>
+                {% endfor %}
+                <a href="{% url 'tool_browse' %}" class="btn btn-info text-white w-100 mt-2">Browse All Tools</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Upcoming Events Section -->
+{% if upcoming_events %}
+<div class="card shadow-sm mb-5">
+    <div class="card-header bg-primary text-white">
+        <h4><i class="bi bi-calendar-event"></i> Upcoming Community Events</h4>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            {% for event in upcoming_events %}
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 border">
+                    <div class="card-body">
+                        <h5>{{ event.title }}</h5>
+                        <span class="badge bg-info">{{ event.get_event_type_display }}</span>
+                        <p class="mt-2 small">{{ event.description|truncatewords:20 }}</p>
+                        <p class="small mb-1"><i class="bi bi-calendar"></i> {{ event.event_date|date:"M d, Y - g:i A" }}</p>
+                        <p class="small mb-2"><i class="bi bi-geo-alt"></i> {{ event.location }}</p>
+                        <a href="{% url 'event_detail' event.pk %}" class="btn btn-sm btn-primary">Learn More</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <a href="{% url 'event_browse' %}" class="btn btn-outline-primary w-100">View All Events</a>
+    </div>
+</div>
+{% endif %}
+
+<!-- Call to Action -->
+{% if not user.is_authenticated %}
+<div class="text-center bg-light p-5 rounded">
+    <h2>Ready to Join?</h2>
+    <p class="lead">Start building connections in your community today!</p>
+    <a href="{% url 'register' %}" class="btn btn-primary btn-lg">Create Free Account</a>
+</div>
+{% endif %}
+{% endblock %}
