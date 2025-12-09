@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block title %}{{ message.subject }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="mb-3">
+            <a href="{% url 'inbox' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Inbox
+            </a>
+        </div>
+        
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="bi bi-envelope-open"></i> {{ message.subject }}</h4>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>From:</strong> 
+                        <a href="{% url 'view_profile' message.sender.username %}">{{ message.sender.username }}</a>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>To:</strong> 
+                        <a href="{% url 'view_profile' message.recipient.username %}">{{ message.recipient.username }}</a>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <strong>Date:</strong> {{ message.created_at|date:"M d, Y - g:i A" }}
+                    </div>
+                </div>
+                
+                {% if message.listing %}
+                <div class="alert alert-info">
+                    <strong><i class="bi bi-tag"></i> Related to:</strong> 
+                    <a href="{% url 'listing_detail' message.listing.pk %}">{{ message.listing.title }}</a>
+                </div>
+                {% endif %}
+                
+                <hr>
+                
+                <div class="message-body">
+                    <p style="white-space: pre-wrap;">{{ message.body }}</p>
+                </div>
+                
+                {% if message.requires_response %}
+                <div class="alert alert-warning mt-3">
+                    <strong><i class="bi bi-exclamation-triangle"></i> Response Required:</strong>
+                    {% if message.response_status == 'PENDING' %}
+                    This message requires your response (Accept or Decline)
+                    {% elif message.response_status == 'ACCEPTED' %}
+                    <span class="badge bg-success">Accepted</span> on {{ message.created_at|date:"M d, Y - g:i A" }}
+                    {% elif message.response_status == 'DECLINED' %}
+                    <span class="badge bg-danger">Declined</span> on {{ message.created_at|date:"M d, Y - g:i A" }}
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-footer">
+                {% if user == message.recipient %}
+                    {% if message.requires_response and message.response_status == 'PENDING' %}
+                    <div class="d-flex gap-2 mb-3">
+                        <a href="{% url 'respond_to_message' message.pk 'accept' %}" class="btn btn-success">
+                            <i class="bi bi-check-circle"></i> Accept Request
+                        </a>
+                        <a href="{% url 'respond_to_message' message.pk 'decline' %}" class="btn btn-danger">
+                            <i class="bi bi-x-circle"></i> Decline Request
+                        </a>
+                    </div>
+                    {% endif %}
+                <a href="{% url 'send_message_to_user' message.sender.username %}" class="btn btn-primary">
+                    <i class="bi bi-reply"></i> Reply
+                </a>
+                {% elif user == message.sender %}
+                    {% if message.requires_response %}
+                    <div class="mb-2">
+                        <strong>Status:</strong>
+                        {% if message.response_status == 'PENDING' %}
+                        <span class="badge bg-warning">Waiting for Response</span>
+                        {% elif message.response_status == 'ACCEPTED' %}
+                        <span class="badge bg-success">Accepted</span>
+                        {% elif message.response_status == 'DECLINED' %}
+                        <span class="badge bg-danger">Declined</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

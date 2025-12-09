@@ -45,4 +45,14 @@ urlpatterns = [
     
     # Matching
     path('matches/', views.find_matches, name='find_matches'),
+    
+    # Messages & Notifications
+    path('messages/', views.inbox, name='inbox'),
+    path('messages/conversation/<int:pk>/', views.conversation_detail, name='conversation_detail'),
+    path('messages/start/<str:username>/', views.start_conversation, name='start_conversation'),
+    path('messages/start/listing/<int:listing_id>/', views.start_conversation, name='start_conversation_listing'),
+    path('messages/<int:pk>/respond/<str:action>/', views.respond_to_message, name='respond_to_message'),
+    path('messages/conversation/<int:conversation_pk>/request-credits/', views.request_credits, name='request_credits'),
+    path('messages/credit/<int:message_pk>/respond/<str:action>/', views.respond_to_credit_request, name='respond_to_credit_request'),
+    path('notifications/', views.notifications, name='notifications'),
 ]

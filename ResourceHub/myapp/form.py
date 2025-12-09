@@ -1,7 +1,8 @@
 from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
-from .models import Transaction, ServiceListing, Tool, Event, Review, Profile, ToolBorrow, Skill
+from .models import (Transaction, ServiceListing, Tool, Event, Review, Profile, 
+                     ToolBorrow, Skill, Message)
 
 class UserRegistrationForm(UserCreationForm):
     email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={'class': 'form-control'}))
@@ -180,3 +181,48 @@ class ReviewForm(forms.ModelForm):
             'rating': forms.Select(attrs={'class': 'form-select'}, choices=[(i, '⭐' * i) for i in range(1, 6)]),
             'comment': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
+
+class MessageForm(forms.ModelForm):
+    class Meta:
+        model = Message
+        fields = ['body', 'requires_response']
+        widgets = {
+            'body': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Type your message...'
+            }),
+            'requires_response': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+        }
+        labels = {
+            'body': '',
+            'requires_response': 'Request approval/response?',
+        }
+        help_texts = {
+            'requires_response': 'Check this if you need the recipient to accept or decline your request',
+        }
+
+class CreditRequestForm(forms.ModelForm):
+    class Meta:
+        model = Message
+        fields = ['credit_amount', 'body']
+        widgets = {
+            'credit_amount': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '0.00',
+                'step': '0.5',
+                'min': '0.5'
+            }),
+            'body': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Reason for credit request (e.g., "For 2 hours of gardening help")'
+            }),
+        }
+        labels = {
+            'credit_amount': 'Credit Amount (hours)',
+            'body': 'Description',
+        }
+

@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block title %}Request Credits{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-6 mx-auto">
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-coin"></i> Request Credits from {{ other_user.username }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> 
+                    <strong>{{ other_user.username }}</strong> has <strong>{{ other_user.profile.time_credits|floatformat:1 }}</strong> credits available
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.credit_amount.id_for_label }}" class="form-label">
+                            {{ form.credit_amount.label }}
+                        </label>
+                        {{ form.credit_amount }}
+                        {% if form.credit_amount.errors %}
+                        <div class="text-danger">{{ form.credit_amount.errors }}</div>
+                        {% endif %}
+                        <div class="form-text">Enter the number of hours (e.g., 2 or 2.5)</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.body.id_for_label }}" class="form-label">
+                            {{ form.body.label }}
+                        </label>
+                        {{ form.body }}
+                        {% if form.body.errors %}
+                        <div class="text-danger">{{ form.body.errors }}</div>
+                        {% endif %}
+                        <div class="form-text">Explain what the credits are for</div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'conversation_detail' conversation.pk %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-send"></i> Send Request
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mt-3">
+            <div class="card-body">
+                <h6><i class="bi bi-lightbulb"></i> How it works:</h6>
+                <ol class="small mb-0">
+                    <li>Enter the amount of credits you're requesting</li>
+                    <li>Explain what the credits are for (e.g., "For 2 hours of tutoring")</li>
+                    <li>{{ other_user.username }} will receive a notification</li>
+                    <li>They can accept and send the credits, or decline</li>
+                    <li>If accepted, credits transfer automatically</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

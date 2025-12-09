@@ -140,3 +140,86 @@ class Review(models.Model):
     
     def __str__(self):
         return f"{self.reviewer.username} rated {self.reviewed_user.username} - {self.rating}★"
+
+# 9. Message System for Communication
+class Conversation(models.Model):
+    """Represents a conversation thread between two users"""
+    participant1 = models.ForeignKey(User, on_delete=models.CASCADE, related_name='conversations_as_participant1')
+    participant2 = models.ForeignKey(User, on_delete=models.CASCADE, related_name='conversations_as_participant2')
+    listing = models.ForeignKey(ServiceListing, on_delete=models.SET_NULL, null=True, blank=True, related_name='conversations')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-updated_at']
+        unique_together = ['participant1', 'participant2', 'listing']
+    
+    def __str__(self):
+        return f"{self.participant1.username} ↔ {self.participant2.username}"
+    
+    def get_other_user(self, current_user):
+        """Get the other participant in the conversation"""
+        return self.participant2 if current_user == self.participant1 else self.participant1
+    
+    def get_last_message(self):
+        """Get the most recent message in this conversation"""
+        return self.messages.first()
+    
+    def has_unread_for(self, user):
+        """Check if there are unread messages for a user"""
+        return self.messages.filter(recipient=user, is_read=False).exists()
+
+class Message(models.Model):
+    """Individual message within a conversation"""
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending Response'),
+        ('ACCEPTED', 'Accepted'),
+        ('DECLINED', 'Declined'),
+        ('NONE', 'No Response Required'),
+    ]
+    
+    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name='messages', null=True, blank=True)
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_messages')
+    body = models.TextField()
+    is_read = models.BooleanField(default=False)
+    requires_response = models.BooleanField(default=False, help_text="Does this message require accept/decline?")
+    response_status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='NONE')
+    
+    # Credit request fields
+    is_credit_request = models.BooleanField(default=False, help_text="Is this a credit transfer request?")
+    credit_amount = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, help_text="Amount of credits requested")
+    credit_status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='NONE', help_text="Status of credit request")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['created_at']
+    
+    def __str__(self):
+        return f"{self.sender.username} → {self.recipient.username}: {self.body[:50]}"
+
+# 10. Notification System
+class Notification(models.Model):
+    NOTIFICATION_TYPES = [
+        ('MESSAGE', 'New Message'),
+        ('LISTING_RESPONSE', 'Response to Listing'),
+        ('TOOL_REQUEST', 'Tool Borrow Request'),
+        ('TOOL_APPROVED', 'Tool Request Approved'),
+        ('EVENT_JOINED', 'User Joined Event'),
+        ('REVIEW_RECEIVED', 'New Review'),
+        ('CREDIT_RECEIVED', 'Credits Received'),
+    ]
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
+    message = models.TextField()
+    link = models.CharField(max_length=200, blank=True, help_text="URL to related content")
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.user.username}: {self.get_notification_type_display()}"

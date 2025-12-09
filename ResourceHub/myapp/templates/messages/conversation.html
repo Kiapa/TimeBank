@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+
+{% block title %}Chat with {{ other_user.username }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <!-- Conversation Header -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-body d-flex align-items-center">
+                <div class="me-3">
+                    <i class="bi bi-person-circle fs-1 text-primary"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <h5 class="mb-0">
+                        <a href="{% url 'view_profile' other_user.username %}" class="text-decoration-none">
+                            {{ other_user.username }}
+                        </a>
+                    </h5>
+                    {% if conversation.listing %}
+                    <small class="text-muted">
+                        <i class="bi bi-tag"></i> 
+                        <a href="{% url 'listing_detail' conversation.listing.pk %}">{{ conversation.listing.title }}</a>
+                    </small>
+                    {% endif %}
+                </div>
+                <a href="{% url 'inbox' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> Back to Inbox
+                </a>
+                <a href="{% url 'request_credits' conversation.pk %}" class="btn btn-success btn-sm ms-2">
+                    <i class="bi bi-coin"></i> Request Credits
+                </a>
+            </div>
+        </div>
+
+        <!-- Messages Thread -->
+        <div class="card shadow-sm mb-3" style="height: 500px;">
+            <div class="card-body p-0 d-flex flex-column" style="height: 100%;">
+                <div class="flex-grow-1 overflow-auto p-3" id="messageThread" style="background-color: #f8f9fa;">
+                    {% for message in messages %}
+                    <div class="mb-3 {% if message.sender == request.user %}text-end{% endif %}">
+                        <!-- Message Bubble -->
+                        <div class="d-inline-block {% if message.sender == request.user %}bg-primary text-white{% else %}bg-white border{% endif %} rounded-3 px-3 py-2 shadow-sm" style="max-width: 70%;">
+                            
+                            <!-- Credit Request Display -->
+                            {% if message.is_credit_request %}
+                            <div class="alert {% if message.sender == request.user %}alert-light{% else %}alert-warning{% endif %} mb-2 p-2">
+                                <strong><i class="bi bi-coin"></i> Credit Request: {{ message.credit_amount }} hours</strong>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="message-body">
+                                {{ message.body|linebreaks }}
+                            </div>
+                            
+                            <!-- Credit Request Status & Actions -->
+                            {% if message.is_credit_request %}
+                            <div class="mt-2 pt-2 border-top {% if message.sender == request.user %}border-light{% else %}border-secondary{% endif %}">
+                                {% if message.credit_status == 'PENDING' %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="bi bi-clock"></i> Pending Payment
+                                </span>
+                                <!-- Accept/Decline for Recipient -->
+                                {% if message.recipient == request.user %}
+                                <div class="mt-2">
+                                    <a href="{% url 'respond_to_credit_request' message.pk 'accept' %}" class="btn btn-success btn-sm">
+                                        <i class="bi bi-check-lg"></i> Send Credits
+                                    </a>
+                                    <a href="{% url 'respond_to_credit_request' message.pk 'decline' %}" class="btn btn-danger btn-sm">
+                                        <i class="bi bi-x-lg"></i> Decline
+                                    </a>
+                                </div>
+                                {% endif %}
+                                {% elif message.credit_status == 'ACCEPTED' %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle"></i> Credits Sent
+                                </span>
+                                {% elif message.credit_status == 'DECLINED' %}
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-x-circle"></i> Declined
+                                </span>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Regular Request Status Badge -->
+                            {% if message.requires_response and not message.is_credit_request %}
+                            <div class="mt-2 pt-2 border-top {% if message.sender == request.user %}border-light{% else %}border-secondary{% endif %}">
+                                {% if message.response_status == 'PENDING' %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="bi bi-clock"></i> Response Needed
+                                </span>
+                                {% elif message.response_status == 'ACCEPTED' %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle"></i> Accepted
+                                </span>
+                                {% elif message.response_status == 'DECLINED' %}
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-x-circle"></i> Declined
+                                </span>
+                                {% endif %}
+                                
+                                <!-- Accept/Decline Buttons for Recipient -->
+                                {% if message.recipient == request.user and message.response_status == 'PENDING' %}
+                                <div class="mt-2">
+                                    <a href="{% url 'respond_to_message' message.pk 'accept' %}" class="btn btn-success btn-sm">
+                                        <i class="bi bi-check-lg"></i> Accept
+                                    </a>
+                                    <a href="{% url 'respond_to_message' message.pk 'decline' %}" class="btn btn-danger btn-sm">
+                                        <i class="bi bi-x-lg"></i> Decline
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Timestamp -->
+                            <div class="mt-1">
+                                <small class="{% if message.sender == request.user %}text-white-50{% else %}text-muted{% endif %}">
+                                    {{ message.created_at|date:"M d, g:i A" }}
+                                    {% if message.sender == request.user and message.is_read %}
+                                    <i class="bi bi-check-all"></i>
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-muted py-5">
+                        <i class="bi bi-chat-dots fs-1"></i>
+                        <p class="mt-2">No messages yet. Start the conversation!</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Message Input Form -->
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        {{ form.body }}
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="form-check">
+                            {{ form.requires_response }}
+                            <label class="form-check-label" for="{{ form.requires_response.id_for_label }}">
+                                {{ form.requires_response.label }}
+                            </label>
+                            {% if form.requires_response.help_text %}
+                            <div class="form-text">{{ form.requires_response.help_text }}</div>
+                            {% endif %}
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-send"></i> Send
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Auto-scroll to bottom of messages
+    document.addEventListener('DOMContentLoaded', function() {
+        const messageThread = document.getElementById('messageThread');
+        messageThread.scrollTop = messageThread.scrollHeight;
+    });
+</script>
+{% endblock %}
