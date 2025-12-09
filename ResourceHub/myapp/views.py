@@ -356,6 +356,46 @@ def tool_approve_borrow(request, pk):
     
     return render(request, 'tools/approve_borrow.html', {'borrow': borrow})
 
+@login_required
+def tool_edit(request, pk):
+    """Edit a tool listing"""
+    tool = get_object_or_404(Tool, pk=pk, owner=request.user)
+    
+    if request.method == 'POST':
+        form = ToolForm(request.POST, request.FILES, instance=tool)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'{tool.name} updated successfully!')
+            return redirect('tool_detail', pk=tool.pk)
+    else:
+        form = ToolForm(instance=tool)
+    
+    context = {
+        'form': form,
+        'tool': tool,
+        'is_edit': True,
+    }
+    return render(request, 'tools/create.html', context)
+
+@login_required
+def tool_delete(request, pk):
+    """Delete a tool listing"""
+    tool = get_object_or_404(Tool, pk=pk, owner=request.user)
+    
+    # Check if tool has active borrows
+    active_borrows = ToolBorrow.objects.filter(tool=tool, status='APPROVED').exists()
+    if active_borrows:
+        messages.error(request, 'Cannot delete tool with active borrows. Please wait until all borrows are completed.')
+        return redirect('tool_detail', pk=pk)
+    
+    if request.method == 'POST':
+        tool_name = tool.name
+        tool.delete()
+        messages.success(request, f'{tool_name} has been deleted.')
+        return redirect('tool_browse')
+    
+    return render(request, 'tools/delete.html', {'tool': tool})
+
 # ============== EVENTS ==============
 def event_browse(request):
     """Browse community events"""
@@ -822,16 +862,68 @@ def respond_to_credit_request(request, message_pk, action):
 
 @login_required
 def notifications(request):
-    """View all notifications"""
-    user_notifications = Notification.objects.filter(user=request.user)[:50]
+    """View all notifications and pending tool borrow requests"""
+    # Get notifications queryset (not sliced yet)
+    user_notifications = Notification.objects.filter(user=request.user)
     
     # Mark all as read if requested
     if request.GET.get('mark_read'):
         user_notifications.update(is_read=True)
         return redirect('notifications')
     
+    # Get pending tool borrow requests where user is the tool owner
+    pending_borrow_requests = ToolBorrow.objects.filter(
+        tool__owner=request.user,
+        status='PENDING'
+    ).select_related('borrower', 'tool')
+    
+    # Get unread count before slicing
+    unread_count = user_notifications.filter(is_read=False).count()
+    
     context = {
-        'notifications': user_notifications,
-        'unread_count': user_notifications.filter(is_read=False).count(),
+        'notifications': user_notifications[:50],  # Now slice after filtering
+        'pending_borrow_requests': pending_borrow_requests,
+        'unread_count': unread_count,
     }
     return render(request, 'messages/notifications.html', context)
+
+@login_required
+def respond_to_borrow_request(request, borrow_id, action):
+    """Accept or decline a tool borrow request"""
+    borrow_request = get_object_or_404(ToolBorrow, pk=borrow_id, tool__owner=request.user)
+    
+    if borrow_request.status != 'PENDING':
+        messages.error(request, 'This request has already been processed.')
+        return redirect('notifications')
+    
+    if action == 'accept':
+        borrow_request.status = 'APPROVED'
+        borrow_request.tool.is_available = False
+        borrow_request.tool.save()
+        borrow_request.save()
+        
+        # Create notification for borrower
+        Notification.objects.create(
+            user=borrow_request.borrower,
+            notification_type='TOOL_APPROVED',
+            message=f"{request.user.username} approved your request to borrow {borrow_request.tool.name}",
+            link=f"/tools/{borrow_request.tool.pk}/"
+        )
+        
+        messages.success(request, f'Approved! {borrow_request.tool.name} is now marked as unavailable.')
+        
+    elif action == 'decline':
+        borrow_request.status = 'REJECTED'
+        borrow_request.save()
+        
+        # Create notification for borrower
+        Notification.objects.create(
+            user=borrow_request.borrower,
+            notification_type='TOOL_APPROVED',
+            message=f"{request.user.username} declined your request to borrow {borrow_request.tool.name}",
+            link=f"/tools/{borrow_request.tool.pk}/"
+        )
+        
+        messages.info(request, 'Request declined.')
+    
+    return redirect('notifications')

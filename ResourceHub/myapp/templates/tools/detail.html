@@ -46,8 +46,19 @@
                 <p class="text-muted small">{{ tool.owner.profile.location }}</p>
                 <a href="{% url 'view_profile' tool.owner.username %}" class="btn btn-outline-primary w-100 mb-2">View Profile</a>
                 
-                {% if user.is_authenticated and user != tool.owner and tool.is_available %}
-                <a href="{% url 'tool_request_borrow' tool.pk %}" class="btn btn-success w-100">Request to Borrow</a>
+                {% if user == tool.owner %}
+                <!-- Owner actions -->
+                <a href="{% url 'tool_edit' tool.pk %}" class="btn btn-warning w-100 mb-2">
+                    <i class="bi bi-pencil"></i> Edit Tool
+                </a>
+                <a href="{% url 'tool_delete' tool.pk %}" class="btn btn-danger w-100">
+                    <i class="bi bi-trash"></i> Delete Tool
+                </a>
+                {% elif user.is_authenticated and tool.is_available %}
+                <!-- Borrow action for others -->
+                <a href="{% url 'tool_request_borrow' tool.pk %}" class="btn btn-success w-100">
+                    <i class="bi bi-box-arrow-right"></i> Request to Borrow
+                </a>
                 {% endif %}
             </div>
         </div>

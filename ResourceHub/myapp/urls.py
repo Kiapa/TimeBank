@@ -29,6 +29,8 @@ urlpatterns = [
     path('tools/', views.tool_browse, name='tool_browse'),
     path('tools/create/', views.tool_create, name='tool_create'),
     path('tools/<int:pk>/', views.tool_detail, name='tool_detail'),
+    path('tools/<int:pk>/edit/', views.tool_edit, name='tool_edit'),
+    path('tools/<int:pk>/delete/', views.tool_delete, name='tool_delete'),
     path('tools/<int:pk>/borrow/', views.tool_request_borrow, name='tool_request_borrow'),
     path('tools/borrows/', views.tool_manage_borrows, name='tool_manage_borrows'),
     path('tools/borrows/<int:pk>/approve/', views.tool_approve_borrow, name='tool_approve_borrow'),
@@ -55,4 +57,5 @@ urlpatterns = [
     path('messages/conversation/<int:conversation_pk>/request-credits/', views.request_credits, name='request_credits'),
     path('messages/credit/<int:message_pk>/respond/<str:action>/', views.respond_to_credit_request, name='respond_to_credit_request'),
     path('notifications/', views.notifications, name='notifications'),
+    path('notifications/borrow/<int:borrow_id>/respond/<str:action>/', views.respond_to_borrow_request, name='respond_to_borrow_request'),
 ]

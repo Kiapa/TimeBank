@@ -2,7 +2,7 @@
 {% block title %}Notifications{% endblock %}
 {% block content %}
 <div class="row">
-    <div class="col-12">
+    <div class="col-lg-10 mx-auto">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2>
                 <i class="bi bi-bell"></i> Notifications
@@ -16,34 +16,99 @@
             </a>
             {% endif %}
         </div>
-        
-        <div class="list-group">
-            {% for notification in notifications %}
-            <div class="list-group-item {% if not notification.is_read %}bg-light border-primary{% endif %}">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div class="flex-grow-1">
-                        <div class="d-flex align-items-center mb-1">
-                            {% if not notification.is_read %}
-                            <span class="badge bg-primary me-2">New</span>
-                            {% endif %}
-                            <span class="badge bg-secondary">{{ notification.get_notification_type_display }}</span>
+
+        <!-- Pending Tool Borrow Requests -->
+        {% if pending_borrow_requests %}
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="bi bi-tools"></i> Pending Tool Borrow Requests
+                    <span class="badge bg-dark">{{ pending_borrow_requests.count }}</span>
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for borrow in pending_borrow_requests %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">
+                                    <strong>{{ borrow.borrower.username }}</strong> wants to borrow your tool
+                                </h6>
+                                <p class="mb-1">
+                                    <i class="bi bi-tools"></i> <strong>{{ borrow.tool.name }}</strong>
+                                </p>
+                                <p class="mb-1 text-muted small">
+                                    <i class="bi bi-calendar-range"></i> 
+                                    {{ borrow.start_date|date:"M d, Y" }} - {{ borrow.end_date|date:"M d, Y" }}
+                                </p>
+                                {% if borrow.purpose %}
+                                <p class="mb-2 small">
+                                    <i class="bi bi-chat-left-text"></i> {{ borrow.purpose }}
+                                </p>
+                                {% endif %}
+                                <small class="text-muted">
+                                    <i class="bi bi-clock"></i> {{ borrow.created_at|timesince }} ago
+                                </small>
+                            </div>
+                            <div class="ms-3">
+                                <a href="{% url 'respond_to_borrow_request' borrow.pk 'accept' %}" 
+                                   class="btn btn-success btn-sm mb-1"
+                                   onclick="return confirm('Accept this borrow request? The tool will be marked as unavailable.');">
+                                    <i class="bi bi-check-lg"></i> Accept
+                                </a>
+                                <a href="{% url 'respond_to_borrow_request' borrow.pk 'decline' %}" 
+                                   class="btn btn-danger btn-sm"
+                                   onclick="return confirm('Decline this request?');">
+                                    <i class="bi bi-x-lg"></i> Decline
+                                </a>
+                            </div>
                         </div>
-                        <p class="mb-1">{{ notification.message }}</p>
-                        {% if notification.link %}
-                        <a href="{{ notification.link }}" class="btn btn-sm btn-outline-primary mt-2">
-                            <i class="bi bi-arrow-right"></i> View
-                        </a>
-                        {% endif %}
                     </div>
-                    <small class="text-muted">{{ notification.created_at|timesince }} ago</small>
+                    {% endfor %}
                 </div>
             </div>
-            {% empty %}
-            <div class="alert alert-info">
-                <i class="bi bi-info-circle"></i> No notifications yet.
+        </div>
+        {% endif %}
+        
+        <!-- General Notifications -->
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-inbox"></i> All Notifications</h5>
             </div>
-            {% endfor %}
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for notification in notifications %}
+                    <div class="list-group-item {% if not notification.is_read %}bg-light border-primary{% endif %}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center mb-1">
+                                    {% if not notification.is_read %}
+                                    <span class="badge bg-primary me-2">New</span>
+                                    {% endif %}
+                                    <span class="badge bg-secondary">{{ notification.get_notification_type_display }}</span>
+                                </div>
+                                <p class="mb-1">{{ notification.message }}</p>
+                                {% if notification.link %}
+                                <a href="{{ notification.link }}" class="btn btn-sm btn-outline-primary mt-2">
+                                    <i class="bi bi-arrow-right"></i> View
+                                </a>
+                                {% endif %}
+                            </div>
+                            <small class="text-muted">{{ notification.created_at|timesince }} ago</small>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="list-group-item">
+                        <div class="alert alert-info mb-0">
+                            <i class="bi bi-info-circle"></i> No notifications yet.
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
     </div>
 </div>
 {% endblock %}
+
