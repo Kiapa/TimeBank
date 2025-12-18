@@ -12,8 +12,8 @@ urlpatterns = [
     path('logout/', views.user_logout, name='logout'),
     
     # Profile
-    path('profile/<str:username>/', views.view_profile, name='view_profile'),
     path('profile/edit/', views.edit_profile, name='edit_profile'),
+    path('profile/<str:username>/', views.view_profile, name='view_profile'),
     
     # Transactions
     path('transfer/', views.transfer_credits, name='transfer_credits'),
@@ -47,6 +47,11 @@ urlpatterns = [
     
     # Matching
     path('matches/', views.find_matches, name='find_matches'),
+    
+    # Map
+    path('map/', views.map_view, name='map_view'),
+    path('api/map-data/', views.map_data, name='map_data'),
+    path('api/check-updates/', views.check_updates, name='check_updates'),
     
     # Messages & Notifications
     path('messages/', views.inbox, name='inbox'),

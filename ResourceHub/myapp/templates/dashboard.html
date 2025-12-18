@@ -84,6 +84,17 @@
 {% endblock %}
 
 {% block content %}
+<!-- Location Alert for Users Without Location Set -->
+{% if not user.profile.latitude %}
+<div class="alert alert-warning alert-dismissible fade show" role="alert">
+    <i class="bi bi-geo-alt-fill"></i>
+    <strong>Set Your Location!</strong> Help your community find you by adding your location to your profile. 
+    This allows nearby members to discover your services and tools.
+    <a href="{% url 'edit_profile' %}" class="alert-link">Add Location Now</a>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+
 <!-- Welcome Header -->
 <div class="row mb-4">
     <div class="col-12">

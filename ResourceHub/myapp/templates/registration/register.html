@@ -86,6 +86,19 @@
                         {{ profile_form.profile_picture }}
                     </div>
                     
+                    <h5 class="mt-4 mb-3">Set Your Location (Optional)</h5>
+                    <p class="text-muted small">Setting your location helps you connect with nearby community members.</p>
+                    
+                    <div class="mb-3">
+                        <div id="registrationMap" style="height: 300px; border-radius: 8px;"></div>
+                        <button type="button" id="useLocationBtn" class="btn btn-sm btn-outline-primary mt-2">
+                            <i class="bi bi-geo-alt-fill"></i> Use My Current Location
+                        </button>
+                        <div id="coordsDisplay" class="mt-2 small text-muted"></div>
+                        {{ profile_form.latitude }}
+                        {{ profile_form.longitude }}
+                    </div>
+                    
                     <button type="submit" class="btn btn-primary w-100 mt-3">Create Account</button>
                 </form>
                 
@@ -96,4 +109,77 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Initialize registration map
+var regMap = L.map('registrationMap').setView([0, 0], 2);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 19
+}).addTo(regMap);
+
+var regMarker = null;
+var latInput = document.getElementById('id_latitude');
+var lngInput = document.getElementById('id_longitude');
+var coordsDisplay = document.getElementById('coordsDisplay');
+
+// Try to get user's current location on load
+if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(function(position) {
+        regMap.setView([position.coords.latitude, position.coords.longitude], 13);
+    });
+}
+
+// Click on map to set location
+regMap.on('click', function(e) {
+    if (regMarker) {
+        regMap.removeLayer(regMarker);
+    }
+    regMarker = L.marker(e.latlng, {draggable: true}).addTo(regMap);
+    latInput.value = e.latlng.lat.toFixed(6);
+    lngInput.value = e.latlng.lng.toFixed(6);
+    coordsDisplay.textContent = 'Location set: ' + e.latlng.lat.toFixed(6) + ', ' + e.latlng.lng.toFixed(6);
+    
+    regMarker.on('dragend', function(event) {
+        var position = regMarker.getLatLng();
+        latInput.value = position.lat.toFixed(6);
+        lngInput.value = position.lng.toFixed(6);
+        coordsDisplay.textContent = 'Location set: ' + position.lat.toFixed(6) + ', ' + position.lng.toFixed(6);
+    });
+});
+
+// Use my location button
+document.getElementById('useLocationBtn').addEventListener('click', function() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            var lat = position.coords.latitude;
+            var lng = position.coords.longitude;
+            
+            if (regMarker) {
+                regMap.removeLayer(regMarker);
+            }
+            
+            regMarker = L.marker([lat, lng], {draggable: true}).addTo(regMap);
+            regMap.setView([lat, lng], 13);
+            latInput.value = lat.toFixed(6);
+            lngInput.value = lng.toFixed(6);
+            coordsDisplay.textContent = 'Location set: ' + lat.toFixed(6) + ', ' + lng.toFixed(6);
+            
+            regMarker.on('dragend', function(e) {
+                var position = regMarker.getLatLng();
+                latInput.value = position.lat.toFixed(6);
+                lngInput.value = position.lng.toFixed(6);
+                coordsDisplay.textContent = 'Location set: ' + position.lat.toFixed(6) + ', ' + position.lng.toFixed(6);
+            });
+        }, function() {
+            alert('Unable to retrieve your location');
+        });
+    } else {
+        alert('Geolocation is not supported by your browser');
+    }
+});
+</script>
 {% endblock %}

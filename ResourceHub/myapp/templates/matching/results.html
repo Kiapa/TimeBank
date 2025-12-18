@@ -1,27 +1,68 @@
 {% extends 'base.html' %}
 {% block title %}Find Matches{% endblock %}
 {% block content %}
-<h2 class="mb-4"><i class="bi bi-link-45deg"></i> Suggested Matches</h2>
+<h2 class="mb-4"><i class="bi bi-link-45deg"></i> Suggested Matches Near You</h2>
+
+{% if not has_location %}
+<div class="alert alert-info">
+    <i class="bi bi-geo-alt"></i> 
+    <strong>Set your location to see nearby matches!</strong> 
+    <a href="{% url 'edit_profile' %}" class="alert-link">Add your location</a> to find people and services in your area.
+</div>
+{% endif %}
 
 <div class="card mb-4">
     <div class="card-header bg-success text-white">
         <h5><i class="bi bi-hand-thumbs-up"></i> People Who Can Help You</h5>
+        <small>Sorted by distance from you</small>
     </div>
     <div class="card-body">
         {% for match in matching_offers %}
         <div class="mb-3 p-3 border rounded">
-            <div class="d-flex justify-content-between align-items-start">
-                <div>
-                    <h6>{{ match.offer.title }}</h6>
-                    <p class="text-muted small mb-1">By {{ match.offer.user.username }}</p>
-                    <p class="mb-1">{{ match.offer.description|truncatewords:20 }}</p>
-                    <span class="badge bg-info">Match Score: {{ match.match_score }}</span>
+            <div class="d-flex align-items-start">
+                <!-- Profile Picture -->
+                <div class="me-3">
+                    {% if match.offer.user.profile.profile_picture %}
+                        <img src="{{ match.offer.user.profile.profile_picture.url }}" 
+                             class="rounded-circle" 
+                             width="60" 
+                             height="60" 
+                             style="object-fit: cover;"
+                             alt="{{ match.offer.user.username }}">
+                    {% else %}
+                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" 
+                             style="width: 60px; height: 60px; font-size: 24px; font-weight: bold;">
+                            {{ match.offer.user.username|first|upper }}
+                        </div>
+                    {% endif %}
                 </div>
-                <div>
-                    <a href="{% url 'listing_detail' match.offer.pk %}" class="btn btn-sm btn-primary">View</a>
+                
+                <div class="flex-grow-1">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <h6 class="mb-0">{{ match.offer.title }}</h6>
+                        <span class="badge bg-primary">
+                            <i class="bi bi-geo-fill"></i> {{ match.distance_display }}
+                        </span>
+                        <span class="badge bg-info">Match: {{ match.match_score }}</span>
+                    </div>
+                    <p class="text-muted small mb-1">
+                        <i class="bi bi-person-circle"></i> {{ match.offer.user.username }}
+                        {% if match.offer.user.get_full_name %}
+                            ({{ match.offer.user.get_full_name }})
+                        {% endif %}
+                    </p>
+                    <p class="mb-1">{{ match.offer.description|truncatewords:20 }}</p>
+                    <div class="mt-2">
+                        <small class="text-muted"><i class="bi bi-arrow-right"></i> Matching your request: "{{ match.request.title }}"</small>
+                    </div>
+                </div>
+                <div class="ms-3">
+                    <a href="{% url 'listing_detail' match.offer.pk %}" class="btn btn-sm btn-success mb-1">View</a>
+                    <a href="{% url 'start_conversation_listing' match.offer.pk %}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-chat"></i> Contact
+                    </a>
                 </div>
             </div>
-            <small class="text-muted">Matching your request: "{{ match.request.title }}"</small>
         </div>
         {% empty %}
         <p class="text-muted">No matches found. Try creating more service requests!</p>
@@ -32,22 +73,55 @@
 <div class="card">
     <div class="card-header bg-warning">
         <h5><i class="bi bi-hand-thumbs-up"></i> People Who Need Your Help</h5>
+        <small>Sorted by distance from you</small>
     </div>
     <div class="card-body">
         {% for match in matching_requests %}
         <div class="mb-3 p-3 border rounded">
-            <div class="d-flex justify-content-between align-items-start">
-                <div>
-                    <h6>{{ match.request.title }}</h6>
-                    <p class="text-muted small mb-1">Requested by {{ match.request.user.username }}</p>
-                    <p class="mb-1">{{ match.request.description|truncatewords:20 }}</p>
-                    <span class="badge bg-info">Match Score: {{ match.match_score }}</span>
+            <div class="d-flex align-items-start">
+                <!-- Profile Picture -->
+                <div class="me-3">
+                    {% if match.request.user.profile.profile_picture %}
+                        <img src="{{ match.request.user.profile.profile_picture.url }}" 
+                             class="rounded-circle" 
+                             width="60" 
+                             height="60" 
+                             style="object-fit: cover;"
+                             alt="{{ match.request.user.username }}">
+                    {% else %}
+                        <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center" 
+                             style="width: 60px; height: 60px; font-size: 24px; font-weight: bold;">
+                            {{ match.request.user.username|first|upper }}
+                        </div>
+                    {% endif %}
                 </div>
-                <div>
-                    <a href="{% url 'listing_detail' match.request.pk %}" class="btn btn-sm btn-warning">View</a>
+                
+                <div class="flex-grow-1">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <h6 class="mb-0">{{ match.request.title }}</h6>
+                        <span class="badge bg-primary">
+                            <i class="bi bi-geo-fill"></i> {{ match.distance_display }}
+                        </span>
+                        <span class="badge bg-info">Match: {{ match.match_score }}</span>
+                    </div>
+                    <p class="text-muted small mb-1">
+                        <i class="bi bi-person-circle"></i> {{ match.request.user.username }}
+                        {% if match.request.user.get_full_name %}
+                            ({{ match.request.user.get_full_name }})
+                        {% endif %}
+                    </p>
+                    <p class="mb-1">{{ match.request.description|truncatewords:20 }}</p>
+                    <div class="mt-2">
+                        <small class="text-muted"><i class="bi bi-arrow-right"></i> Matching your offer: "{{ match.offer.title }}"</small>
+                    </div>
+                </div>
+                <div class="ms-3">
+                    <a href="{% url 'listing_detail' match.request.pk %}" class="btn btn-sm btn-warning mb-1">View</a>
+                    <a href="{% url 'start_conversation_listing' match.request.pk %}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-chat"></i> Contact
+                    </a>
                 </div>
             </div>
-            <small class="text-muted">Matching your offer: "{{ match.offer.title }}"</small>
         </div>
         {% empty %}
         <p class="text-muted">No matches found. Try offering more services!</p>

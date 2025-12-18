@@ -5,7 +5,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.db.models import Q, Count, Avg
 from django.utils import timezone
+from django.http import JsonResponse
 from decimal import Decimal
+from math import radians, cos, sin, asin, sqrt
 from .form import (TransferForm, ServiceListingForm, ToolForm, EventForm, 
                    ReviewForm, UserRegistrationForm, ProfileForm, ToolBorrowForm, MessageForm, CreditRequestForm)
 from .models import (ServiceListing, Tool, Transaction, Event, Review, 
@@ -117,15 +119,18 @@ def user_logout(request):
 @login_required
 def edit_profile(request):
     """Edit user profile"""
+    # Ensure profile exists
+    profile, created = Profile.objects.get_or_create(user=request.user)
+    
     if request.method == 'POST':
-        profile_form = ProfileForm(request.POST, request.FILES, instance=request.user.profile)
+        profile_form = ProfileForm(request.POST, request.FILES, instance=profile)
         
         if profile_form.is_valid():
             profile_form.save()
             messages.success(request, 'Profile updated successfully!')
             return redirect('view_profile', username=request.user.username)
     else:
-        profile_form = ProfileForm(instance=request.user.profile)
+        profile_form = ProfileForm(instance=profile)
     
     return render(request, 'profile/edit_profile.html', {'profile_form': profile_form})
 
@@ -489,9 +494,33 @@ def create_review(request, username):
 
 # ============== MATCHING ALGORITHM ==============
 @login_required
+def calculate_distance(lat1, lon1, lat2, lon2):
+    """
+    Calculate the great circle distance in kilometers between two points 
+    on the earth (specified in decimal degrees)
+    """
+    if not all([lat1, lon1, lat2, lon2]):
+        return float('inf')  # Return infinity if coordinates are missing
+    
+    # Convert decimal degrees to radians
+    lon1, lat1, lon2, lat2 = map(radians, [float(lon1), float(lat1), float(lon2), float(lat2)])
+    
+    # Haversine formula
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a))
+    km = 6371 * c  # Radius of earth in kilometers
+    return km
+
 def find_matches(request):
-    """Find matching offers/requests for the user"""
+    """Find matching offers/requests for the user, prioritizing nearby matches"""
     user = request.user
+    user_profile = user.profile
+    
+    # Get user's coordinates
+    user_lat = user_profile.latitude
+    user_lon = user_profile.longitude
     
     # Get user's requests
     user_requests = ServiceListing.objects.filter(
@@ -515,13 +544,19 @@ def find_matches(request):
             listing_type='OFFER',
             is_active=True,
             skills__in=skills
-        ).exclude(user=user).distinct()
+        ).exclude(user=user).distinct().select_related('user__profile')
         
         for match in matches:
+            distance = calculate_distance(
+                user_lat, user_lon,
+                match.user.profile.latitude, match.user.profile.longitude
+            )
             matching_offers.append({
                 'request': req,
                 'offer': match,
-                'match_score': len(set(req.skills.all()) & set(match.skills.all()))
+                'match_score': len(set(req.skills.all()) & set(match.skills.all())),
+                'distance': distance,
+                'distance_display': f"{distance:.1f} km" if distance != float('inf') else "Location not set"
             })
     
     # Find matching requests for user's offers
@@ -532,22 +567,29 @@ def find_matches(request):
             listing_type='REQUEST',
             is_active=True,
             skills__in=skills
-        ).exclude(user=user).distinct()
+        ).exclude(user=user).distinct().select_related('user__profile')
         
         for match in matches:
+            distance = calculate_distance(
+                user_lat, user_lon,
+                match.user.profile.latitude, match.user.profile.longitude
+            )
             matching_requests.append({
                 'offer': offer,
                 'request': match,
-                'match_score': len(set(offer.skills.all()) & set(match.skills.all()))
+                'match_score': len(set(offer.skills.all()) & set(match.skills.all())),
+                'distance': distance,
+                'distance_display': f"{distance:.1f} km" if distance != float('inf') else "Location not set"
             })
     
-    # Sort by match score
-    matching_offers.sort(key=lambda x: x['match_score'], reverse=True)
-    matching_requests.sort(key=lambda x: x['match_score'], reverse=True)
+    # Sort by distance first, then by match score
+    matching_offers.sort(key=lambda x: (x['distance'], -x['match_score']))
+    matching_requests.sort(key=lambda x: (x['distance'], -x['match_score']))
     
     context = {
         'matching_offers': matching_offers[:10],
         'matching_requests': matching_requests[:10],
+        'has_location': user_lat is not None and user_lon is not None,
     }
     return render(request, 'matching/results.html', context)
 
@@ -927,3 +969,133 @@ def respond_to_borrow_request(request, borrow_id, action):
         messages.info(request, 'Request declined.')
     
     return redirect('notifications')
+
+# ============== MAP VIEW ==============
+from django.http import JsonResponse
+
+def map_view(request):
+    """Display map with nearby users, services, tools, and events"""
+    return render(request, 'map/view.html')
+
+def map_data(request):
+    """API endpoint to return map markers data"""
+    # Get all profiles with coordinates
+    profiles = Profile.objects.filter(
+        latitude__isnull=False, 
+        longitude__isnull=False,
+        is_available=True
+    ).select_related('user')
+    
+    # Get active service listings with user coordinates
+    services = ServiceListing.objects.filter(
+        is_active=True,
+        user__profile__latitude__isnull=False,
+        user__profile__longitude__isnull=False
+    ).select_related('user__profile')
+    
+    # Get available tools with owner coordinates
+    tools = Tool.objects.filter(
+        is_available=True,
+        owner__profile__latitude__isnull=False,
+        owner__profile__longitude__isnull=False
+    ).select_related('owner__profile')
+    
+    # Get upcoming events with coordinates (if event has location coords)
+    events = Event.objects.filter(
+        is_active=True,
+        event_date__gte=timezone.now()
+    )[:20]
+    
+    data = {
+        'users': [
+            {
+                'id': p.user.id,
+                'username': p.user.username,
+                'lat': float(p.latitude),
+                'lng': float(p.longitude),
+                'location': p.location,
+                'credits': float(p.time_credits),
+                'url': f'/profile/{p.user.username}/'
+            }
+            for p in profiles
+        ],
+        'services': [
+            {
+                'id': s.id,
+                'title': s.title,
+                'type': s.listing_type,
+                'lat': float(s.user.profile.latitude),
+                'lng': float(s.user.profile.longitude),
+                'owner': s.user.username,
+                'url': f'/listings/{s.id}/'
+            }
+            for s in services
+        ],
+        'tools': [
+            {
+                'id': t.id,
+                'name': t.name,
+                'lat': float(t.owner.profile.latitude),
+                'lng': float(t.owner.profile.longitude),
+                'owner': t.owner.username,
+                'url': f'/tools/{t.id}/'
+            }
+            for t in tools
+        ],
+    }
+    
+    return JsonResponse(data)
+
+@login_required
+def check_updates(request):
+    """API endpoint to check for new messages and notifications"""
+    # Get unread messages count
+    unread_messages = Message.objects.filter(
+        recipient=request.user,
+        is_read=False
+    ).count()
+    
+    # Get the latest unread message
+    latest_message = Message.objects.filter(
+        recipient=request.user,
+        is_read=False
+    ).select_related('sender').order_by('-created_at').first()
+    
+    # Get unread notifications count
+    unread_notifications = Notification.objects.filter(
+        user=request.user,
+        is_read=False
+    ).count()
+    
+    # Get the latest unread notification
+    latest_notification = Notification.objects.filter(
+        user=request.user,
+        is_read=False
+    ).order_by('-created_at').first()
+    
+    data = {
+        'unread_messages': unread_messages,
+        'unread_notifications': unread_notifications,
+        'new_message': None,
+        'new_notification': None,
+    }
+    
+    # Check if there's a new message (created in last 30 seconds)
+    if latest_message:
+        time_diff = timezone.now() - latest_message.created_at
+        if time_diff.total_seconds() < 30:
+            data['new_message'] = {
+                'sender': latest_message.sender.username,
+                'body': latest_message.body[:50],
+            }
+    
+    # Check if there's a new notification (created in last 30 seconds)
+    if latest_notification:
+        time_diff = timezone.now() - latest_notification.created_at
+        if time_diff.total_seconds() < 30:
+            data['new_notification'] = {
+                'message': latest_notification.message[:50],
+            }
+    
+    return JsonResponse(data)
+

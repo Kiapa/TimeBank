@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+
+{% block title %}Near Me - Community Map{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-3">
+            <i class="bi bi-geo-alt-fill"></i> Near Me
+        </h2>
+        
+        <div class="card shadow-sm mb-3">
+            <div class="card-body">
+                <div class="btn-group mb-3" role="group">
+                    <input type="checkbox" class="btn-check" id="showUsers" checked autocomplete="off">
+                    <label class="btn btn-outline-primary" for="showUsers">
+                        <i class="bi bi-people"></i> Users
+                    </label>
+
+                    <input type="checkbox" class="btn-check" id="showServices" checked autocomplete="off">
+                    <label class="btn btn-outline-success" for="showServices">
+                        <i class="bi bi-list-ul"></i> Services
+                    </label>
+
+                    <input type="checkbox" class="btn-check" id="showTools" checked autocomplete="off">
+                    <label class="btn btn-outline-warning" for="showTools">
+                        <i class="bi bi-tools"></i> Tools
+                    </label>
+                </div>
+
+                <div id="map"></div>
+            </div>
+        </div>
+
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> 
+            <strong>Tip:</strong> Click on markers to see details. Use the filters above to show/hide different types of resources.
+            {% if not user.profile.latitude %}
+            <hr>
+            <i class="bi bi-exclamation-triangle"></i> 
+            You haven't set your location yet. <a href="{% url 'edit_profile' %}">Update your profile</a> to appear on the map!
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Initialize map centered on a default location
+var map = L.map('map').setView([0, 0], 2);
+
+// Add OpenStreetMap tiles
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 19
+}).addTo(map);
+
+// Layer groups for different marker types
+var userMarkers = L.layerGroup().addTo(map);
+var serviceMarkers = L.layerGroup().addTo(map);
+var toolMarkers = L.layerGroup().addTo(map);
+
+// Custom icons
+var userIcon = L.icon({
+    iconUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgZmlsbD0iIzBkNmVmZCI+PHBhdGggZD0iTTEyIDJDOC4xMyAyIDUgNS4xMyA1IDljMCA1LjI1IDcgMTMgNyAxM3M3LTcuNzUgNy0xM2MwLTMuODctMy4xMy03LTctN3ptMCA5LjVjLTEuMzggMC0yLjUtMS4xMi0yLjUtMi41czEuMTItMi41IDIuNS0yLjUgMi41IDEuMTIgMi41IDIuNS0xLjEyIDIuNS0yLjUgMi41eiIvPjwvc3ZnPg==',
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -32]
+});
+
+var serviceIcon = L.icon({
+    iconUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgZmlsbD0iIzE5ODc1NCI+PHBhdGggZD0iTTEyIDJDOC4xMyAyIDUgNS4xMyA1IDljMCA1LjI1IDcgMTMgNyAxM3M3LTcuNzUgNy0xM2MwLTMuODctMy4xMy03LTctN3ptMCA5LjVjLTEuMzggMC0yLjUtMS4xMi0yLjUtMi41czEuMTItMi41IDIuNS0yLjUgMi41IDEuMTIgMi41IDIuNS0xLjEyIDIuNS0yLjUgMi41eiIvPjwvc3ZnPg==',
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -32]
+});
+
+var toolIcon = L.icon({
+    iconUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgZmlsbD0iI2ZmYzEwNyI+PHBhdGggZD0iTTEyIDJDOC4xMyAyIDUgNS4xMyA1IDljMCA1LjI1IDcgMTMgNyAxM3M3LTcuNzUgNy0xM2MwLTMuODctMy4xMy03LTctN3ptMCA5LjVjLTEuMzggMC0yLjUtMS4xMi0yLjUtMi41czEuMTItMi41IDIuNS0yLjUgMi41IDEuMTIgMi41IDIuNS0xLjEyIDIuNS0yLjUgMi41eiIvPjwvc3ZnPg==',
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -32]
+});
+
+// Fetch and display map data
+fetch('/api/map-data/')
+    .then(response => response.json())
+    .then(data => {
+        var bounds = [];
+
+        // Add user markers
+        data.users.forEach(user => {
+            var marker = L.marker([user.lat, user.lng], {icon: userIcon})
+                .bindPopup(`
+                    <strong><i class="bi bi-person-circle"></i> ${user.username}</strong><br>
+                    <small>${user.location}</small><br>
+                    <span class="badge bg-success">${user.credits} credits</span><br>
+                    <a href="${user.url}" class="btn btn-sm btn-primary mt-2">View Profile</a>
+                `);
+            marker.addTo(userMarkers);
+            bounds.push([user.lat, user.lng]);
+        });
+
+        // Add service markers
+        data.services.forEach(service => {
+            var color = service.type === 'OFFER' ? 'success' : 'info';
+            var marker = L.marker([service.lat, service.lng], {icon: serviceIcon})
+                .bindPopup(`
+                    <strong><i class="bi bi-list-ul"></i> ${service.title}</strong><br>
+                    <span class="badge bg-${color}">${service.type}</span><br>
+                    <small>by ${service.owner}</small><br>
+                    <a href="${service.url}" class="btn btn-sm btn-success mt-2">View Service</a>
+                `);
+            marker.addTo(serviceMarkers);
+            bounds.push([service.lat, service.lng]);
+        });
+
+        // Add tool markers
+        data.tools.forEach(tool => {
+            var marker = L.marker([tool.lat, tool.lng], {icon: toolIcon})
+                .bindPopup(`
+                    <strong><i class="bi bi-tools"></i> ${tool.name}</strong><br>
+                    <small>by ${tool.owner}</small><br>
+                    <a href="${tool.url}" class="btn btn-sm btn-warning mt-2">View Tool</a>
+                `);
+            marker.addTo(toolMarkers);
+            bounds.push([tool.lat, tool.lng]);
+        });
+
+        // Fit map to show all markers
+        if (bounds.length > 0) {
+            map.fitBounds(bounds, {padding: [50, 50]});
+        }
+
+        // Try to get user's location
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                var userLat = position.coords.latitude;
+                var userLng = position.coords.longitude;
+                map.setView([userLat, userLng], 13);
+                
+                // Add "You are here" marker
+                L.marker([userLat, userLng], {
+                    icon: L.divIcon({
+                        className: 'user-location-marker',
+                        html: '<div style="background: #dc3545; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>',
+                        iconSize: [20, 20]
+                    })
+                }).addTo(map).bindPopup('📍 You are here');
+            });
+        }
+    });
+
+// Toggle layers
+document.getElementById('showUsers').addEventListener('change', function() {
+    if (this.checked) {
+        map.addLayer(userMarkers);
+    } else {
+        map.removeLayer(userMarkers);
+    }
+});
+
+document.getElementById('showServices').addEventListener('change', function() {
+    if (this.checked) {
+        map.addLayer(serviceMarkers);
+    } else {
+        map.removeLayer(serviceMarkers);
+    }
+});
+
+document.getElementById('showTools').addEventListener('change', function() {
+    if (this.checked) {
+        map.addLayer(toolMarkers);
+    } else {
+        map.removeLayer(toolMarkers);
+    }
+});
+</script>
+{% endblock %}
